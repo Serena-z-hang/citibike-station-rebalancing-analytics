@@ -313,7 +313,7 @@ citibike-station-rebalancing-analytics/
 └── station_rebalancing_analysis.sql
 ```
 
-### `citibike_rebalancing_analysis.ipynb`
+### [`citibike_rebalancing_analysis.ipynb`](citibike_rebalancing_analysis.ipynb)
 
 Analysis notebook covering:
 
@@ -329,7 +329,7 @@ Analysis notebook covering:
 - Priority Score construction
 - Tableau-ready output
 
-### `station_rebalancing_analysis.sql`
+### [`station_rebalancing_analysis.sql`](station_rebalancing_analysis.sql)
 
 DuckDB SQL workflow covering the main transformation and KPI logic.
 
