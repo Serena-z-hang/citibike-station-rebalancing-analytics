@@ -1,5 +1,7 @@
 # Citi Bike Station Health & Rebalancing Analytics
+## Dashboard Preview
 
+![Citi Bike Station Health & Rebalancing Analytics Dashboard](citibike_dashboard_github_preview.png)
 ## Project Overview
 
 This project analyzes **5,246,236 Citi Bike trips from August 2026** to identify station-hour rebalancing priorities across New York City.
