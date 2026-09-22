@@ -4,7 +4,7 @@
 
 ![Citi Bike Station Health & Rebalancing Analytics Dashboard](citibike_dashboard_github_preview.png)
 
-[View the interactive Tableau dashboard](YOUR_TABLEAU_PUBLIC_LINK)
+### [View the Interactive Tableau Dashboard](https://public.tableau.com/views/CitiBike_Rebalancing_Analytics_Final/1?:language=zh-CN&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
 
 ## Project Overview
 
@@ -32,14 +32,14 @@ Rather than treating unusual patterns as immediate operational problems, the pro
 ## Data
 
 - Source: Citi Bike trip data
-- Period: August 2026
+- Period: **August 2026**
 - Raw files: **6 CSV files**
 - Trips analyzed: **5,246,236**
 - Analysis grain: **station × hour**
 
 ## Data Quality & Entity Resolution
 
-A key part of the project was validating whether apparent operational problems were actually caused by the data.
+A key part of the project was determining whether apparent operational problems reflected real mobility patterns or data-quality issues.
 
 During the quality audit, some stations appeared to have extreme one-way flow patterns that initially looked like strong rebalancing signals.
 
@@ -77,38 +77,38 @@ Key results:
 
 Long-duration trips were flagged for review rather than automatically removed because **unusual observations are not necessarily erroneous**.
 
-This distinction is important for maintaining data reliability and avoiding unnecessary data loss.
+This distinction helps avoid unnecessary data loss while maintaining analytical reliability.
 
 ## Station-Hour Aggregation
 
 Trip-level records were transformed into a **station × date × hour** structure.
 
-For each station-hour, the analysis calculated:
+For each station-hour, the analysis calculated metrics including:
 
 - Average arrivals
 - Average departures
 - Average net flow
 - Average total activity
-- Bike-pressure persistence
-- Dock-pressure persistence
+- Imbalance severity
+- Pressure persistence
 
-This aggregation makes the data usable for operational decision-making at the time and location level.
+This aggregation converts raw trip records into operationally meaningful station-level signals.
 
 ## Rebalancing KPI Framework
 
-The rebalancing framework evaluates three dimensions:
+The framework evaluates three dimensions of rebalancing pressure.
 
 ### 1. Imbalance Severity
 
 Measures how directional station flow is relative to total activity.
 
-A station with strongly one-sided arrivals or departures may indicate potential availability pressure.
+A strongly one-sided pattern of arrivals or departures may indicate potential availability pressure.
 
 ### 2. Activity
 
-Measures the total volume of trips at a station-hour.
+Measures trip volume at the station-hour level.
 
-This prevents very low-volume stations from being prioritized solely because of a high imbalance ratio.
+Including activity prevents low-volume stations from being prioritized solely because they have a large imbalance ratio.
 
 ### 3. Persistence
 
@@ -118,20 +118,20 @@ A complete station-hour grid was used so that zero-activity hours were included 
 
 ## Priority Score
 
-The project combines severity, activity, and persistence into a composite **Priority Score** used to rank station-hour combinations for operational investigation.
+Severity, activity, and persistence were combined into a composite **Priority Score** used to rank station-hour combinations for operational investigation.
 
-The score is intended to answer:
+The score is designed to answer:
 
 **Which station-hours deserve operational attention first?**
 
-It is a prioritization signal, **not a probability that a station is empty or full**.
+The score is a prioritization signal, **not a probability that a station is empty or full**.
 
 Because real-time bike inventory and dock-capacity data were not available, the analysis refers to:
 
 - **Bike Availability Pressure**
 - **Dock Availability Pressure**
 
-rather than confirmed stockouts or full-station events.
+rather than confirmed bike shortages or full-dock events.
 
 ## Key Findings
 
@@ -143,7 +143,7 @@ rather than confirmed stockouts or full-station events.
 
 ## Interactive Dashboard
 
-The Tableau dashboard includes three core views:
+The Tableau dashboard contains three core views.
 
 ### Priority Map
 
@@ -159,13 +159,15 @@ Shows how the number of prioritized stations changes throughout the day for bike
 
 The interactive **Hour** filter updates the Priority Map and Top 10 ranking while preserving the full 24-hour pressure profile.
 
+### [Open the Interactive Dashboard on Tableau Public](https://public.tableau.com/views/CitiBike_Rebalancing_Analytics_Final/1?:language=zh-CN&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+
 ## Why Data Reliability Matters
 
-A central lesson from the project is that a strong operational signal is only useful if the underlying data is reliable.
+A central lesson from the project is that a strong analytical signal is only useful if the underlying data is reliable.
 
-The station-ID issue showed that:
+The station-ID issue illustrates the potential chain of failure:
 
-**bad entity resolution → distorted station flows → misleading KPI → potentially incorrect business decision**
+**Poor entity resolution → distorted station flows → misleading KPI → potentially incorrect business decision**
 
 For this reason, data-quality validation was treated as part of the analytical workflow rather than as a separate preprocessing task.
 
@@ -177,14 +179,14 @@ Therefore:
 
 - The dashboard identifies pressure signals rather than confirmed bike shortages or full docks
 - Priority Score thresholds are analytical decision rules rather than physical system constraints
-- The analysis does not directly model bike availability in real time
-- Results are based on August 2026 trip behavior and may vary by season
+- The analysis does not directly model real-time bike availability
+- Results are based on August 2026 behavior and may vary across seasons
 
 Future improvements could incorporate:
 
 - Real-time station inventory
 - Station dock capacity
-- Weather
+- Weather conditions
 - Special events
 - Rebalancing truck constraints
 - Travel time between stations
