@@ -10,200 +10,139 @@
 
 This project analyzes **5,246,236 Citi Bike trips from August 2026** to identify station-hour rebalancing priorities across New York City.
 
-The goal is to help operations teams understand:
+The analysis is designed around three operational questions:
 
-- Where bike- and dock-availability pressure is concentrated
-- Which stations should be prioritized at a selected hour
-- When rebalancing pressure is highest throughout the day
+- **Where** is bike- or dock-availability pressure concentrated?
+- **Which stations** should receive attention first at a selected hour?
+- **When** is rebalancing pressure highest throughout the day?
 
-Rather than treating unusual patterns as immediate operational problems, the project uses a **data-quality-first workflow** to validate station identities, trip behavior, and KPI definitions before generating recommendations.
+Rather than treating unusual patterns as immediate operational problems, the project follows a **data-quality-first workflow**. Station identities, trip behavior, and KPI definitions are validated before generating operational recommendations.
 
 ## Business Question
 
 **How can Citi Bike trip data be transformed into a reliable station-hour prioritization framework for rebalancing decisions?**
 
+The objective is not to predict exact bike inventory. Instead, the project uses trip-flow patterns to identify station-hours that may deserve greater operational attention.
+
 ## Tools
 
-- DuckDB
-- Python
-- Tableau
-- Google Drive
+- **DuckDB** — querying and aggregating 5M+ trip records
+- **Python** — analysis workflow and validation
+- **Tableau** — interactive operational dashboard
+- **Google Drive / Colab** — data storage and analysis environment
 
 ## Data
 
-- Source: Citi Bike trip data
-- Period: **August 2026**
-- Raw files: **6 CSV files**
-- Trips analyzed: **5,246,236**
-- Analysis grain: **station × hour**
+- **Source:** Citi Bike trip data
+- **Period:** August 2026
+- **Raw files:** 6 CSV files
+- **Trips analyzed:** **5,246,236**
+- **Raw-data grain:** one row per bike trip
+- **Operational analysis grain:** station × date × hour
 
-## Data Quality & Entity Resolution
+The raw trip files are not included in this repository because of their size.
 
-A key part of the project was determining whether apparent operational problems reflected real mobility patterns or data-quality issues.
+## Data Quality First
 
-During the quality audit, some stations appeared to have extreme one-way flow patterns that initially looked like strong rebalancing signals.
+A major focus of this project was determining whether apparent operational problems were real mobility patterns or artifacts of the underlying data.
 
-Further investigation revealed that some physical stations were represented by multiple station IDs.
+Two important QA areas were investigated:
+
+1. Trip-duration behavior
+2. Station-identifier consistency
+
+This mattered because inaccurate data could directly distort downstream rebalancing KPIs and lead to incorrect operational conclusions.
+
+## Trip Duration Quality Audit
+
+Trip durations were profiled before making any filtering decision.
+
+Key results:
+
+- **Median trip duration:** 9.78 minutes
+- **99th percentile:** 65.83 minutes
+- **Trips longer than 4 hours:** 4,286
+
+Long-duration trips were flagged for review rather than automatically removed.
+
+The guiding principle was:
+
+> **Unusual does not automatically mean invalid.**
+
+Automatically deleting every long-duration trip could remove legitimate rides and introduce unnecessary bias into the analysis.
+
+## Station Entity Resolution
+
+One of the most important findings came from station-ID validation.
+
+Some stations initially appeared to have extreme one-way flow patterns, suggesting severe bike- or dock-availability pressure.
+
+Further investigation showed that some physical stations were represented by multiple station-ID formats.
 
 For example:
 
 - `5343.1`
 - `5343.10`
 
-Both identifiers represented the same station location, but trip activity was split across the two IDs.
+These identifiers referred to the same physical station location, but the trip records were split across two IDs.
 
-Before normalization, one ID appeared strongly arrival-dominant while the other appeared strongly departure-dominant.
+Before normalization:
 
-After resolving them into a canonical station key:
+- one ID appeared strongly arrival-dominant
+- the other appeared strongly departure-dominant
 
-- Arrivals: **7,605**
-- Departures: **7,497**
+After resolving the two IDs into one canonical station key:
 
-The apparent imbalance largely disappeared.
+- **Arrivals:** 7,605
+- **Departures:** 7,497
 
-This demonstrated that a **data-quality issue could create a false operational signal**, potentially leading to incorrect rebalancing decisions.
+The apparent extreme imbalance largely disappeared.
 
-Station-ID normalization was therefore performed before constructing downstream KPIs.
+This demonstrated an important analytical lesson:
 
-## Trip Duration Quality Audit
+> **A data-quality problem can create a false business signal.**
 
-Trip-duration profiling was used to understand unusual records without automatically treating them as invalid.
+Without entity resolution, an operations team could incorrectly prioritize a station for rebalancing.
 
-Key results:
+## Canonical Station Key
 
-- Median trip duration: **9.78 minutes**
-- 99th percentile: **65.83 minutes**
-- Trips longer than 4 hours: **4,286**
+Station IDs were normalized before downstream KPI construction.
 
-Long-duration trips were flagged for review rather than automatically removed because **unusual observations are not necessarily erroneous**.
+The normalization logic was designed to handle cases such as:
 
-This distinction helps avoid unnecessary data loss while maintaining analytical reliability.
+- `5343.1` → `5343.10`
+- `5343.10` → `5343.10`
+- `5303.06_` → `5303.06`
+
+At the same time, legitimate alphanumeric station IDs such as:
+
+- `SYS016`
+- `HB103`
+- `JC002`
+
+were preserved.
+
+This avoided the mistake of simply converting every station ID to a numeric value.
 
 ## Station-Hour Aggregation
 
-Trip-level records were transformed into a **station × date × hour** structure.
+Trip-level data was transformed into a **station × date × hour** analytical structure.
 
-For each station-hour, the analysis calculated metrics including:
+For each station-hour, the workflow calculated:
 
-- Average arrivals
-- Average departures
-- Average net flow
-- Average total activity
-- Imbalance severity
-- Pressure persistence
+- Arrivals
+- Departures
+- Net flow
+- Total activity
+- Imbalance rate
+- Bike-pressure flag
+- Dock-pressure flag
 
-This aggregation converts raw trip records into operationally meaningful station-level signals.
-
-## Rebalancing KPI Framework
-
-The framework evaluates three dimensions of rebalancing pressure.
-
-### 1. Imbalance Severity
-
-Measures how directional station flow is relative to total activity.
-
-A strongly one-sided pattern of arrivals or departures may indicate potential availability pressure.
-
-### 2. Activity
-
-Measures trip volume at the station-hour level.
-
-Including activity prevents low-volume stations from being prioritized solely because they have a large imbalance ratio.
-
-### 3. Persistence
-
-Measures how consistently a pressure pattern appears across active days.
-
-A complete station-hour grid was used so that zero-activity hours were included in the denominator, preventing persistence from being overstated.
-
-## Priority Score
-
-Severity, activity, and persistence were combined into a composite **Priority Score** used to rank station-hour combinations for operational investigation.
-
-The score is designed to answer:
-
-**Which station-hours deserve operational attention first?**
-
-The score is a prioritization signal, **not a probability that a station is empty or full**.
-
-Because real-time bike inventory and dock-capacity data were not available, the analysis refers to:
-
-- **Bike Availability Pressure**
-- **Dock Availability Pressure**
-
-rather than confirmed bike shortages or full-dock events.
-
-## Key Findings
-
-- Bike-availability pressure is strongly concentrated around the morning commute.
-- At **8 AM, 675 stations** were flagged for bike-availability pressure under the project methodology.
-- Dock-availability pressure becomes more prominent later in the day, with another concentration during the evening period.
-- Rebalancing pressure varies substantially by hour, reinforcing the importance of time-specific operational planning.
-- Station-ID normalization materially changed some apparent rebalancing signals, demonstrating the importance of validating data quality before making operational recommendations.
-
-## Interactive Dashboard
-
-The Tableau dashboard contains three core views.
-
-### Priority Map
-
-Shows where bike- and dock-availability pressure is concentrated across the Citi Bike network.
-
-### Top 10 Rebalancing Priorities
-
-Ranks the highest-priority stations for the selected hour based on the composite Priority Score.
-
-### Rebalancing Pressure by Hour
-
-Shows how the number of prioritized stations changes throughout the day for bike- and dock-availability pressure.
-
-The interactive **Hour** filter updates the Priority Map and Top 10 ranking while preserving the full 24-hour pressure profile.
-
-### [Open the Interactive Dashboard on Tableau Public](https://public.tableau.com/views/CitiBike_Rebalancing_Analytics_Final/1?:language=zh-CN&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
-
-## Why Data Reliability Matters
-
-A central lesson from the project is that a strong analytical signal is only useful if the underlying data is reliable.
-
-The station-ID issue illustrates the potential chain of failure:
-
-**Poor entity resolution → distorted station flows → misleading KPI → potentially incorrect business decision**
-
-For this reason, data-quality validation was treated as part of the analytical workflow rather than as a separate preprocessing task.
-
-## Limitations
-
-This analysis uses trip flows rather than real-time station inventory or dock-capacity data.
-
-Therefore:
-
-- The dashboard identifies pressure signals rather than confirmed bike shortages or full docks
-- Priority Score thresholds are analytical decision rules rather than physical system constraints
-- The analysis does not directly model real-time bike availability
-- Results are based on August 2026 behavior and may vary across seasons
-
-Future improvements could incorporate:
-
-- Real-time station inventory
-- Station dock capacity
-- Weather conditions
-- Special events
-- Rebalancing truck constraints
-- Travel time between stations
-
-## Repository Structure
+Definitions:
 
 ```text
-citibike-station-rebalancing-analytics/
-│
-├── README.md
-├── citibike_dashboard_github_preview.png
-│
-├── notebooks/
-│   └── citibike_rebalancing_analysis.ipynb
-│
-├── sql/
-│   └── station_rebalancing_analysis.sql
-│
-└── output/
-    └── station_hour_priorities.csv
+Net Flow = Arrivals - Departures
+
+Total Activity = Arrivals + Departures
+
+Imbalance Rate = Net Flow / Total Activity
